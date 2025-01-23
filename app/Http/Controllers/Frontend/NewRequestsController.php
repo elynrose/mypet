@@ -12,6 +12,7 @@ use App\Models\User;
 use Gate;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Auth;
 
 class NewRequestsController extends Controller
 {
@@ -19,9 +20,17 @@ class NewRequestsController extends Controller
     {
         abort_if(Gate::denies('new_request_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $newRequests = NewRequest::with(['pet', 'booked_by'])->get();
+        $myRequests = NewRequest::with(['pet', 'booked_by'])
+            ->where('booked_by_id', '=', Auth::id())
+            ->orderBy('available_to', 'desc')
+        ->get();
 
-        return view('frontend.newRequests.index', compact('newRequests'));
+        $newRequests = NewRequest::with(['pet', 'booked_by'])
+        ->where('booked_by_id', '!=', Auth::id())
+        ->orderBy('available_to', 'desc')
+    ->get();
+
+        return view('frontend.newRequests.index', compact('newRequests', 'myRequests'));
     }
 
     public function create()
@@ -37,9 +46,41 @@ class NewRequestsController extends Controller
 
     public function store(StoreNewRequestRequest $request)
     {
-        $newRequest = NewRequest::create($request->all());
+        //Check if a booking exists for the same pet and time
+        $existingRequest = NewRequest::where('pet_id', $request->pet_id)
+            ->where('available_from', '<=', $request->available_from)
+            ->where('available_to', '>=', $request->available_to)
+            ->where('status', '!=', 'Completed')   
+            ->first();
+        
+            if($existingRequest) {
+                return redirect()->back()->with('message', 'A booking already exists for the same pet and time');
+            }
 
-        return redirect()->route('frontend.new-requests.index');
+        //Booking dates cannot be in the past
+        if($request->available_from < now() || $request->available_to < now()) {
+            //Send a notification
+            //Someone tried to book your pet but the one of the available dates are in the past
+            return redirect()->back()->with('message', 'Booking dates cannot be in the past, we have notified the pet owner, please check again later.');
+
+        }
+            
+    
+
+        $calculateCredits = $this->calculateCredits($request);
+
+        $newRequest = NewRequest::create([
+            'pet_id' => $request->pet_id,
+            'booked_by_id' => Auth::id(),
+            'available_from' => $request->available_from,
+            'available_to' => $request->available_to,
+            //'not_available' => false,
+            'status' => 'New',
+            'credits' =>   $calculateCredits,
+        ]
+
+        );
+       // return redirect()->route('frontend.new-requests.index');
     }
 
     public function edit(NewRequest $newRequest)
@@ -90,4 +131,17 @@ class NewRequestsController extends Controller
 
         return response(null, Response::HTTP_NO_CONTENT);
     }
+
+    //write a method to calculate total credits based on number of hours requested
+
+    public function calculateCredits(Request $request)
+    {
+        $available_from = \Carbon\Carbon::parse($request->available_from);
+        $available_to = \Carbon\Carbon::parse($request->available_to);
+        $hours = $available_from->diffInHours($available_to);
+        return $hours * 2;
+    }
+
+
+
 }

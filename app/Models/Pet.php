@@ -56,7 +56,7 @@ class Pet extends Model implements HasMedia
     public function registerMediaConversions(Media $media = null): void
     {
         $this->addMediaConversion('thumb')->fit('crop', 50, 50);
-        $this->addMediaConversion('preview')->fit('crop', 120, 120);
+        $this->addMediaConversion('preview')->fit('crop', 309, 234);
     }
 
     public function getPhotoAttribute()
@@ -94,5 +94,10 @@ class Pet extends Model implements HasMedia
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function new_requests()
+    {
+        return $this->hasMany(NewRequest::class, 'pet_id', 'id');
     }
 }

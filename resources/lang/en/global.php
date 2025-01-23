@@ -1,6 +1,11 @@
 <?php
 
 return [
+    'availability'                    => 'Availability',
+    'to'                             => 'To',
+    'from'                           => 'From',
+    'book'                           => 'Book',
+    'actions'                        => 'Actions',
     'actions'                        => 'Actions',
     'add'                            => 'Add',
     'allRightsReserved'              => 'All rights reserved.',

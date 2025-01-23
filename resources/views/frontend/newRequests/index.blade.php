@@ -3,107 +3,142 @@
 <div class="container">
     <div class="row justify-content-center">
         <div class="col-md-12">
-            @can('new_request_create')
-                <div style="margin-bottom: 10px;" class="row">
-                    <div class="col-lg-12">
-                        <a class="btn btn-success" href="{{ route('frontend.new-requests.create') }}">
-                            {{ trans('global.add') }} {{ trans('cruds.newRequest.title_singular') }}
-                        </a>
+            <h2 class="display-5 font-weight-bold text-dark mb-5">New Requests</h2>
+
+            <nav>
+  <div class="nav nav-tabs" id="nav-tab" role="tablist">
+    <button class="nav-link active" id="nav-home-tab" data-toggle="tab" data-target="#nav-home" type="button" role="tab" aria-controls="nav-home" aria-selected="true">Member Requests</button>
+    <button class="nav-link" id="nav-profile-tab" data-toggle="tab" data-target="#nav-profile" type="button" role="tab" aria-controls="nav-profile" aria-selected="false">My Requests</button>
+  </div>
+</nav>
+<div class="tab-content" id="nav-tabContent">
+  <div class="tab-pane fade show active mt-5" id="nav-home" role="tabpanel" aria-labelledby="nav-home-tab">
+  @foreach($newRequests as $key => $newRequest)
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-2 col-sm-12 text-center">
+                                    <img src="{{ $newRequest->pet->photo->getUrl('preview') }}" class="shadow" style="object-fit: cover; min-height: 100px; width: 100%; border-radius: 5px; margin-bottom: 10px; margin-right: 10px; margin-top: 0px; margin-left: 10px;">
+                                    
+                                </div>
+                                <div class="col-md-8 col-sm-12">
+                                    <h5 class="card-title">{{ $newRequest->pet->name ?? '' }}</h5>
+                                    <p>
+                                        <strong>Caregiver:</strong> {{ $newRequest->booked_by->first_name ?? '' }} {{ $newRequest->booked_by->last_name ?? '' }}<br>
+                                        <span class="small">
+                                            <i class="fas fa-calendar"></i> {{ $newRequest->available_from ? \Carbon\Carbon::parse($newRequest->available_from)->format('d M Y, h:i A') : '' }} - {{ $newRequest->available_to ? \Carbon\Carbon::parse($newRequest->available_to)->format('d M Y, h:i A') : '' }}<br>
+                                            <i class="fas fa-clock"></i>&nbsp; {{ $newRequest->status }}<br>
+                                            <i class="fas fa-money"></i> {{ trans('cruds.newRequest.fields.credits') }}: {{ $newRequest->credits ?? '' }}
+                                        </span>
+                                    </p>
+                                </div>
+                            </div>
+                            <div style="position: absolute; right: 10px; top: 10px;">
+                                @can('new_request_delete')
+                                <form action="{{ route('frontend.new-requests.destroy', $newRequest->id) }}" method="POST" onsubmit="return confirm('{{ trans('global.areYouSure') }}');" style="display: inline-block;">
+                                    @method('DELETE')
+                                    @csrf
+                                    <button class="btn btn-default btn-xs" value="{{ trans('global.delete') }}"><i class="fas fa-trash"></i></button>
+                                </form>
+                                @endcan
+                            </div>
+                            @if(\Carbon\Carbon::parse($newRequest->available_to)->isPast() && $newRequest->status != "Completed")
+                             <span class="mt-3 text-right" style="display:block;">
+                            <a href="#" class="btn btn-info btn-sm text-right"><i class="fas fa-warning"></i> Mark Completed</a></span>
+                            @elseif($newRequest->status === "Completed"  && \Carbon\Carbon::parse($newRequest->available_to)->isPast())
+                            <span class="mt-3 text-right" style="display:block;">
+                                <a class="btn btn-warning btn-sm" href="{{ route('frontend.new-requests.show', $newRequest->id) }}">Submit Review</a>
+                            </span>
+                    
+                            @elseif(\Carbon\Carbon::parse($newRequest->available_to)->isFuture())
+                            @if($newRequest->status == "New")
+                            <span class="mt-3 text-right" style="display:block;">
+                                <a class="btn btn-primary btn-sm" href="{{ route('frontend.new-requests.show', $newRequest->id) }}">Accept</a>
+                                <a class="btn btn-danger btn-sm" href="{{ route('frontend.new-requests.show', $newRequest->id) }}">Decline</a>
+                            </span>
+                            @elseif($newRequest->status == "Accepted")
+                            <span class="mt-3 text-right" style="display:block;">
+                                <a class="btn btn-primary btn-sm" href="{{ route('frontend.new-requests.show', $newRequest->id) }}">Mark as Completed</a>
+                            </span>
+                            @elseif($newRequest->status == "Ongoing")
+                            <span class="mt-3 text-right" style="display:block;">
+                                <a class="btn btn-primary btn-sm" href="{{ route('frontend.new-requests.show', $newRequest->id) }}">Contact Owner</a>
+                            </span>
+                            @endif
+                            @endif
+                        </div>
                     </div>
                 </div>
-            @endcan
-            <div class="card">
-                <div class="card-header">
-                    {{ trans('cruds.newRequest.title_singular') }} {{ trans('global.list') }}
                 </div>
+                @endforeach
 
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class=" table table-bordered table-striped table-hover datatable datatable-NewRequest">
-                            <thead>
-                                <tr>
-                                    <th>
-                                        {{ trans('cruds.newRequest.fields.pet') }}
-                                    </th>
-                                    <th>
-                                        {{ trans('cruds.newRequest.fields.available_from') }}
-                                    </th>
-                                    <th>
-                                        {{ trans('cruds.newRequest.fields.available_to') }}
-                                    </th>
-                                    <th>
-                                        {{ trans('cruds.newRequest.fields.credits') }}
-                                    </th>
-                                    <th>
-                                        {{ trans('cruds.newRequest.fields.status') }}
-                                    </th>
-                                    <th>
-                                        {{ trans('cruds.newRequest.fields.booked_by') }}
-                                    </th>
-                                    <th>
-                                        {{ trans('cruds.user.fields.last_name') }}
-                                    </th>
-                                    <th>
-                                        &nbsp;
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($newRequests as $key => $newRequest)
-                                    <tr data-entry-id="{{ $newRequest->id }}">
-                                        <td>
-                                            {{ $newRequest->pet->name ?? '' }}
-                                        </td>
-                                        <td>
-                                            {{ $newRequest->available_from ?? '' }}
-                                        </td>
-                                        <td>
-                                            {{ $newRequest->available_to ?? '' }}
-                                        </td>
-                                        <td>
-                                            {{ $newRequest->credits ?? '' }}
-                                        </td>
-                                        <td>
-                                            {{ App\Models\NewRequest::STATUS_SELECT[$newRequest->status] ?? '' }}
-                                        </td>
-                                        <td>
-                                            {{ $newRequest->booked_by->first_name ?? '' }}
-                                        </td>
-                                        <td>
-                                            {{ $newRequest->booked_by->last_name ?? '' }}
-                                        </td>
-                                        <td>
-                                            @can('new_request_show')
-                                                <a class="btn btn-xs btn-primary" href="{{ route('frontend.new-requests.show', $newRequest->id) }}">
-                                                    {{ trans('global.view') }}
-                                                </a>
-                                            @endcan
-
-                                            @can('new_request_edit')
-                                                <a class="btn btn-xs btn-info" href="{{ route('frontend.new-requests.edit', $newRequest->id) }}">
-                                                    {{ trans('global.edit') }}
-                                                </a>
-                                            @endcan
-
-                                            @can('new_request_delete')
-                                                <form action="{{ route('frontend.new-requests.destroy', $newRequest->id) }}" method="POST" onsubmit="return confirm('{{ trans('global.areYouSure') }}');" style="display: inline-block;">
-                                                    <input type="hidden" name="_method" value="DELETE">
-                                                    <input type="hidden" name="_token" value="{{ csrf_token() }}">
-                                                    <input type="submit" class="btn btn-xs btn-danger" value="{{ trans('global.delete') }}">
-                                                </form>
-                                            @endcan
-
-                                        </td>
-
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
+  </div>
+  <div class="tab-pane fade mt-5" id="nav-profile" role="tabpanel" aria-labelledby="nav-profile-tab">
+  @foreach($myRequests as $key => $myRequest)
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-2 col-sm-12 text-center">
+                                    <img src="{{ $myRequest->pet->photo->getUrl('preview') }}" class="shadow" style="object-fit: cover; min-height: 100px; width: 100%; border-radius: 5px; margin-bottom: 10px; margin-right: 10px; margin-top: 0px; margin-left: 10px;">
+                                  
+                                </div>
+                                <div class="col-md-8 col-sm-12">
+                                    <h5 class="card-title">{{ $myRequest->pet->name ?? '' }}</h5>
+                                    <p>
+                                        <strong>Caregiver:</strong> {{ $myRequest->booked_by->first_name ?? '' }} {{ $myRequest->booked_by->last_name ?? '' }}<br>
+                                        <span class="small">
+                                            <i class="fas fa-calendar"></i> {{ $myRequest->available_from ? \Carbon\Carbon::parse($myRequest->available_from)->format('d M Y, h:i A') : '' }} - {{ $myRequest->available_to ? \Carbon\Carbon::parse($myRequest->available_to)->format('d M Y, h:i A') : '' }}<br>
+                                            <i class="fas fa-clock"></i>&nbsp; {{ $myRequest->status }}<br>
+                                            <i class="fas fa-money"></i> {{ trans('cruds.newRequest.fields.credits') }}: {{ $myRequest->credits ?? '' }}
+                                        </span>
+                                    </p>
+                                </div>
+                            </div>
+                            <div style="position: absolute; right: 10px; top: 10px;">
+                                @can('new_request_delete')
+                                <form action="{{ route('frontend.new-requests.destroy', $myRequest->id) }}" method="POST" onsubmit="return confirm('{{ trans('global.areYouSure') }}');" style="display: inline-block;">
+                                    @method('DELETE')
+                                    @csrf
+                                    <button class="btn btn-default btn-xs" value="{{ trans('global.delete') }}"><i class="fas fa-trash"></i></button>
+                                </form>
+                                @endcan
+                            </div>
+                            @if(\Carbon\Carbon::parse($myRequest->available_to)->isPast() && $myRequest->status != "Completed")
+                             <span class="mt-3 text-right" style="display:block;">
+                            <a href="#" class="btn btn-info btn-sm text-right"><i class="fas fa-warning"></i> Mark Completed</a></span>
+                            @elseif($myRequest->status === "Completed"  && \Carbon\Carbon::parse($myRequest->available_to)->isPast())
+                            <span class="mt-3 text-right" style="display:block;">
+                                <a href="#" class="btn btn-warning btn-sm" href="{{ route('frontend.new-requests.show', $myRequest->id) }}"><i class="fas fa-thumbs-up"></i> Submit Review</a>
+                            </span>
+                    
+                            @elseif(\Carbon\Carbon::parse($myRequest->available_to)->isFuture())
+                            @if($myRequest->status == "New")
+                            <span class="mt-3 text-right" style="display:block;">
+                                <a class="btn btn-primary btn-sm" href="{{ route('frontend.new-requests.show', $myRequest->id) }}">Accept</a>
+                                <a class="btn btn-danger btn-sm" href="{{ route('frontend.new-requests.show', $myRequest->id) }}">Decline</a>
+                            </span>
+                            @elseif($myRequest->status == "Accepted")
+                            <span class="mt-3 text-right" style="display:block;">
+                                <a class="btn btn-primary btn-sm" href="{{ route('frontend.new-requests.show', $myRequest->id) }}"> <i class="fas fa-check"></i>Mark as Completed</a>
+                            </span>
+                            @elseif($myRequest->status == "Ongoing")
+                            <span class="mt-3 text-right" style="display:block;">
+                                <a class="btn btn-primary btn-sm" href="{{ route('frontend.new-requests.show', $myRequest->id) }}"><i class="fas fa-comment"></i> Contact Owner</a>
+                            </span>
+                            @endif
+                            @endif
+                        </div>
                     </div>
                 </div>
-            </div>
+                </div>
+                @endforeach
 
-        </div>
+  </div>
+</div>
     </div>
 </div>
 @endsection
@@ -111,49 +146,7 @@
 @parent
 <script>
     $(function () {
-  let dtButtons = $.extend(true, [], $.fn.dataTable.defaults.buttons)
-@can('new_request_delete')
-  let deleteButtonTrans = '{{ trans('global.datatables.delete') }}'
-  let deleteButton = {
-    text: deleteButtonTrans,
-    url: "{{ route('frontend.new-requests.massDestroy') }}",
-    className: 'btn-danger',
-    action: function (e, dt, node, config) {
-      var ids = $.map(dt.rows({ selected: true }).nodes(), function (entry) {
-          return $(entry).data('entry-id')
-      });
-
-      if (ids.length === 0) {
-        alert('{{ trans('global.datatables.zero_selected') }}')
-
-        return
-      }
-
-      if (confirm('{{ trans('global.areYouSure') }}')) {
-        $.ajax({
-          headers: {'x-csrf-token': _token},
-          method: 'POST',
-          url: config.url,
-          data: { ids: ids, _method: 'DELETE' }})
-          .done(function () { location.reload() })
-      }
-    }
-  }
-  dtButtons.push(deleteButton)
-@endcan
-
-  $.extend(true, $.fn.dataTable.defaults, {
-    orderCellsTop: true,
-    order: [[ 1, 'desc' ]],
-    pageLength: 100,
-  });
-  let table = $('.datatable-NewRequest:not(.ajaxTable)').DataTable({ buttons: dtButtons })
-  $('a[data-toggle="tab"]').on('shown.bs.tab click', function(e){
-      $($.fn.dataTable.tables(true)).DataTable()
-          .columns.adjust();
-  });
-  
-})
-
+        // Your existing script can be removed as it is related to DataTables
+    });
 </script>
 @endsection

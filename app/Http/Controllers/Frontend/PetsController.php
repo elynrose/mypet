@@ -13,6 +13,7 @@ use Gate;
 use Illuminate\Http\Request;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Symfony\Component\HttpFoundation\Response;
+use Auth;
 
 class PetsController extends Controller
 {
@@ -22,7 +23,9 @@ class PetsController extends Controller
     {
         abort_if(Gate::denies('pet_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $pets = Pet::with(['user', 'media'])->get();
+        $pets = Pet::with(['user', 'media'])
+        ->Where('user_id', auth()->id())
+        ->get();
 
         return view('frontend.pets.index', compact('pets'));
     }
@@ -64,6 +67,13 @@ class PetsController extends Controller
 
     public function update(UpdatePetRequest $request, Pet $pet)
     {
+
+        
+        //Booking dates cannot be in the past
+        if($request->available_from < now()) {
+            return redirect()->back()->with('message', 'Available dates cannot be in the past');
+        }
+
         $pet->update($request->all());
 
         if ($request->input('photo', false)) {
